@@ -40,7 +40,7 @@ func Load() (*[]Secret, error) {
 	if secretLocation == "" {
 		_, e := os.Stat("./conf.env")
 		if os.IsNotExist(e) {
-			return fmt.Errorf("authbot: missing conf.env file and required envvars not defined")
+			return nil, fmt.Errorf("authbot: missing conf.env file and required envvars not defined")
 		}
 		err := godotenv.Load("./conf.env")
 		if err != nil {
