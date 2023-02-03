@@ -35,27 +35,27 @@ var (
 	secretCache, _ = secretcache.New()
 )
 
-func Load() (*[]Secret, error) {
+func Load() error {
 	secretLocation := os.Getenv("SECRET_STORE")
 	if secretLocation == "" {
 		_, e := os.Stat("./conf.env")
 		if os.IsNotExist(e) {
-			return nil, fmt.Errorf("authbot: missing conf.env file and required envvars not defined")
+			return fmt.Errorf("authbot: missing conf.env file and required envvars not defined")
 		}
 		err := godotenv.Load("./conf.env")
 		if err != nil {
-			return nil, fmt.Errorf("authbot: error loading .env file and required envvars not defined: %v", err)
+			return fmt.Errorf("authbot: error loading .env file and required envvars not defined: %v", err)
 		}
 		secretLocation = os.Getenv("SECRET_STORE")
 		if secretLocation == "" {
-			return nil, fmt.Errorf("authbot: required envvars not defined")
+			return fmt.Errorf("authbot: required envvars not defined")
 		}
 	}
 
 	secretCount := cast.ToInt(os.Getenv("NUM_SECRETS"))
 
 	if secretCount < 1 {
-		return nil, fmt.Errorf("authcreds package: missing or invalid env var: num_secrets")
+		return fmt.Errorf("authcreds package: missing or invalid env var: num_secrets")
 	}
 
 	switch secretLocation {
@@ -66,7 +66,7 @@ func Load() (*[]Secret, error) {
 			s := new(Secret)
 			s.secretID = os.Getenv("SECRET_ID_" + cast.ToString(i))
 			if s.secretID == "" {
-				return nil, fmt.Errorf("authcreds: missing secret_id")
+				return fmt.Errorf("authcreds: missing secret_id")
 			}
 			s.secretVersion = os.Getenv("SECRET_VERSION_" + cast.ToString(i))
 
@@ -85,14 +85,14 @@ func Load() (*[]Secret, error) {
 			if s.tokenType == "Bearer" {
 				s.url = os.Getenv("TOKEN_URL_" + cast.ToString(i))
 				if s.url == "" {
-					return nil, fmt.Errorf("authcreds package: missing env var: token_url_%v", cast.ToString(i))
+					return fmt.Errorf("authcreds package: missing env var: token_url_%v", cast.ToString(i))
 				}
 				s.tokenField = os.Getenv("TOKEN_FIELD_" + cast.ToString(i))
 			}
 
 			s.token, err = fetchGCPSecret(projectID, s.secretID, s.secretVersion)
 			if err != nil {
-				return nil, fmt.Errorf("authcreds: error retrieving %v/version/%v: %v", s.secretID, s.secretVersion, err)
+				return fmt.Errorf("authcreds: error retrieving %v/version/%v: %v", s.secretID, s.secretVersion, err)
 			}
 			// add secret to keyring
 			Keyring = append(Keyring, *s)
@@ -111,7 +111,7 @@ func Load() (*[]Secret, error) {
 			s := new(Secret)
 			s.secretID = os.Getenv("SECRET_ID_" + cast.ToString(i))
 			if s.secretID == "" {
-				return nil, fmt.Errorf("authcreds: missing secret_id")
+				return fmt.Errorf("authcreds: missing secret_id")
 			}
 
 			s.tokenType = os.Getenv("TOKEN_TYPE_" + cast.ToString(i))
@@ -124,7 +124,7 @@ func Load() (*[]Secret, error) {
 			if s.tokenType == "Bearer" {
 				s.url = os.Getenv("TOKEN_URL_" + cast.ToString(i))
 				if s.url == "" {
-					return nil, fmt.Errorf("authcreds package: missing env var: token_url_%v", cast.ToString(i))
+					return fmt.Errorf("authcreds package: missing env var: token_url_%v", cast.ToString(i))
 				}
 				s.tokenField = os.Getenv("TOKEN_FIELD_" + cast.ToString(i))
 				if s.tokenField == "" {
@@ -133,7 +133,7 @@ func Load() (*[]Secret, error) {
 			}
 			token, err := fetchAWSSecret(s.secretID)
 			if err != nil {
-				return nil, fmt.Errorf("authcreds: error retrieving AWS secret %v: %v", s.secretID, err)
+				return fmt.Errorf("authcreds: error retrieving AWS secret %v: %v", s.secretID, err)
 			}
 			s.token = []byte(token)
 
@@ -149,7 +149,7 @@ func Load() (*[]Secret, error) {
 			}
 		}
 	}
-	return &Keyring, nil
+	return nil
 }
 
 func fetchAWSSecret(secretID string) (string, error) {
@@ -216,4 +216,18 @@ func authBearer(Keyring []Secret, index int, overlap string) {
 		d := time.Duration(expiry)
 		time.Sleep(d * time.Second)
 	}
+}
+
+func TokenString(index int) (string, error) {
+	if len(Keyring) < index+1 {
+		return "", fmt.Errorf("token index %v not found", index)
+	}
+	return Keyring[index].Token.String(), nil
+}
+
+func TokenBytes(index int) ([]byte, error) {
+	if len(Keyring) < index+1 {
+		return nil, fmt.Errorf("token index %v not found", index)
+	}
+	return []byte(Keyring[index].Token.String()), nil
 }
