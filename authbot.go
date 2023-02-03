@@ -35,7 +35,7 @@ var (
 	secretCache, _ = secretcache.New()
 )
 
-func Load() error {
+func Load() (*[]Secret, error) {
 	secretLocation := os.Getenv("SECRET_STORE")
 	if secretLocation == "" {
 		_, e := os.Stat("./conf.env")
@@ -44,18 +44,18 @@ func Load() error {
 		}
 		err := godotenv.Load("./conf.env")
 		if err != nil {
-			return fmt.Errorf("authbot: error loading .env file and required envvars not defined: %v", err)
+			return nil, fmt.Errorf("authbot: error loading .env file and required envvars not defined: %v", err)
 		}
 		secretLocation = os.Getenv("SECRET_STORE")
 		if secretLocation == "" {
-			return fmt.Errorf("authbot: required envvars not defined")
+			return nil, fmt.Errorf("authbot: required envvars not defined")
 		}
 	}
 
 	secretCount := cast.ToInt(os.Getenv("NUM_SECRETS"))
 
 	if secretCount < 1 {
-		return fmt.Errorf("authcreds package: missing or invalid env var: num_secrets")
+		return nil, fmt.Errorf("authcreds package: missing or invalid env var: num_secrets")
 	}
 
 	switch secretLocation {
@@ -66,7 +66,7 @@ func Load() error {
 			s := new(Secret)
 			s.SecretID = os.Getenv("SECRET_ID_" + cast.ToString(i))
 			if s.SecretID == "" {
-				return fmt.Errorf("authcreds: missing secret_id")
+				return nil, fmt.Errorf("authcreds: missing secret_id")
 			}
 			s.SecretVersion = os.Getenv("SECRET_VERSION_" + cast.ToString(i))
 
@@ -85,14 +85,14 @@ func Load() error {
 			if s.TokenType == "Bearer" {
 				s.url = os.Getenv("TOKEN_URL_" + cast.ToString(i))
 				if s.url == "" {
-					return fmt.Errorf("authcreds package: missing env var: token_url_%v", cast.ToString(i))
+					return nil, fmt.Errorf("authcreds package: missing env var: token_url_%v", cast.ToString(i))
 				}
 				s.TokenField = os.Getenv("TOKEN_FIELD_" + cast.ToString(i))
 			}
 
 			s.token, err = fetchGCPSecret(projectID, s.SecretID, s.SecretVersion)
 			if err != nil {
-				return fmt.Errorf("authcreds: error retrieving %v/version/%v: %v", s.SecretID, s.SecretVersion, err)
+				return nil, fmt.Errorf("authcreds: error retrieving %v/version/%v: %v", s.SecretID, s.SecretVersion, err)
 			}
 			// add secret to keyring
 			Keyring = append(Keyring, *s)
@@ -111,7 +111,7 @@ func Load() error {
 			s := new(Secret)
 			s.SecretID = os.Getenv("SECRET_ID_" + cast.ToString(i))
 			if s.SecretID == "" {
-				return fmt.Errorf("authcreds: missing secret_id")
+				return nil, fmt.Errorf("authcreds: missing secret_id")
 			}
 
 			s.TokenType = os.Getenv("TOKEN_TYPE_" + cast.ToString(i))
@@ -124,7 +124,7 @@ func Load() error {
 			if s.TokenType == "Bearer" {
 				s.url = os.Getenv("TOKEN_URL_" + cast.ToString(i))
 				if s.url == "" {
-					return fmt.Errorf("authcreds package: missing env var: token_url_%v", cast.ToString(i))
+					return nil, fmt.Errorf("authcreds package: missing env var: token_url_%v", cast.ToString(i))
 				}
 				s.TokenField = os.Getenv("TOKEN_FIELD_" + cast.ToString(i))
 				if s.TokenField == "" {
@@ -133,7 +133,7 @@ func Load() error {
 			}
 			token, err := fetchAWSSecret(s.SecretID)
 			if err != nil {
-				return fmt.Errorf("authcreds: error retrieving AWS secret %v: %v", s.SecretID, err)
+				return nil, fmt.Errorf("authcreds: error retrieving AWS secret %v: %v", s.SecretID, err)
 			}
 			s.token = []byte(token)
 
@@ -149,7 +149,7 @@ func Load() error {
 			}
 		}
 	}
-	return nil
+	return &Keyring, nil
 }
 
 func fetchAWSSecret(secretID string) (string, error) {
