@@ -24,10 +24,10 @@ type Secret struct {
 	Token         atomic.String
 	token         []byte
 	url           string
-	SecretID      string
-	SecretVersion string
-	TokenType     string
-	TokenField    string
+	secretID      string
+	secretVersion string
+	tokenType     string
+	tokenField    string
 }
 
 var (
@@ -64,42 +64,42 @@ func Load() (*[]Secret, error) {
 		for i := 1; i <= int(secretCount); i++ {
 			var err error
 			s := new(Secret)
-			s.SecretID = os.Getenv("SECRET_ID_" + cast.ToString(i))
-			if s.SecretID == "" {
+			s.secretID = os.Getenv("SECRET_ID_" + cast.ToString(i))
+			if s.secretID == "" {
 				return nil, fmt.Errorf("authcreds: missing secret_id")
 			}
-			s.SecretVersion = os.Getenv("SECRET_VERSION_" + cast.ToString(i))
+			s.secretVersion = os.Getenv("SECRET_VERSION_" + cast.ToString(i))
 
 			// default to secret version 1 if unspecified
-			if s.SecretVersion == "" {
-				s.SecretVersion = "1"
+			if s.secretVersion == "" {
+				s.secretVersion = "1"
 			}
 
-			s.TokenType = os.Getenv("TOKEN_TYPE_" + cast.ToString(i))
-			if s.TokenType == "" {
-				s.TokenType = "Bearer"
+			s.tokenType = os.Getenv("TOKEN_TYPE_" + cast.ToString(i))
+			if s.tokenType == "" {
+				s.tokenType = "Bearer"
 			} else {
-				s.TokenType = "APIKEY"
+				s.tokenType = "APIKEY"
 			}
 
-			if s.TokenType == "Bearer" {
+			if s.tokenType == "Bearer" {
 				s.url = os.Getenv("TOKEN_URL_" + cast.ToString(i))
 				if s.url == "" {
 					return nil, fmt.Errorf("authcreds package: missing env var: token_url_%v", cast.ToString(i))
 				}
-				s.TokenField = os.Getenv("TOKEN_FIELD_" + cast.ToString(i))
+				s.tokenField = os.Getenv("TOKEN_FIELD_" + cast.ToString(i))
 			}
 
-			s.token, err = fetchGCPSecret(projectID, s.SecretID, s.SecretVersion)
+			s.token, err = fetchGCPSecret(projectID, s.secretID, s.secretVersion)
 			if err != nil {
-				return nil, fmt.Errorf("authcreds: error retrieving %v/version/%v: %v", s.SecretID, s.SecretVersion, err)
+				return nil, fmt.Errorf("authcreds: error retrieving %v/version/%v: %v", s.secretID, s.secretVersion, err)
 			}
 			// add secret to keyring
 			Keyring = append(Keyring, *s)
 		}
 		// launch goroutine to fetch bearer tokens or store API key
 		for i := 0; i < len(Keyring); i++ {
-			if Keyring[i].TokenType == "Bearer" {
+			if Keyring[i].tokenType == "Bearer" {
 				go authBearer(Keyring, i, "")
 			} else {
 				Keyring[i].Token.Store(string(Keyring[i].token))
@@ -109,31 +109,31 @@ func Load() (*[]Secret, error) {
 		for i := 1; i <= int(secretCount); i++ {
 			var err error
 			s := new(Secret)
-			s.SecretID = os.Getenv("SECRET_ID_" + cast.ToString(i))
-			if s.SecretID == "" {
+			s.secretID = os.Getenv("SECRET_ID_" + cast.ToString(i))
+			if s.secretID == "" {
 				return nil, fmt.Errorf("authcreds: missing secret_id")
 			}
 
-			s.TokenType = os.Getenv("TOKEN_TYPE_" + cast.ToString(i))
-			if s.TokenType == "" {
-				s.TokenType = "Bearer"
+			s.tokenType = os.Getenv("TOKEN_TYPE_" + cast.ToString(i))
+			if s.tokenType == "" {
+				s.tokenType = "Bearer"
 			} else {
-				s.TokenType = "APIKEY"
+				s.tokenType = "APIKEY"
 			}
 
-			if s.TokenType == "Bearer" {
+			if s.tokenType == "Bearer" {
 				s.url = os.Getenv("TOKEN_URL_" + cast.ToString(i))
 				if s.url == "" {
 					return nil, fmt.Errorf("authcreds package: missing env var: token_url_%v", cast.ToString(i))
 				}
-				s.TokenField = os.Getenv("TOKEN_FIELD_" + cast.ToString(i))
-				if s.TokenField == "" {
-					s.TokenField = "access_token"
+				s.tokenField = os.Getenv("TOKEN_FIELD_" + cast.ToString(i))
+				if s.tokenField == "" {
+					s.tokenField = "access_token"
 				}
 			}
-			token, err := fetchAWSSecret(s.SecretID)
+			token, err := fetchAWSSecret(s.secretID)
 			if err != nil {
-				return nil, fmt.Errorf("authcreds: error retrieving AWS secret %v: %v", s.SecretID, err)
+				return nil, fmt.Errorf("authcreds: error retrieving AWS secret %v: %v", s.secretID, err)
 			}
 			s.token = []byte(token)
 
@@ -142,7 +142,7 @@ func Load() (*[]Secret, error) {
 		}
 		// launch goroutine to fetch bearer tokens or store API key
 		for i := 0; i < len(Keyring); i++ {
-			if Keyring[i].TokenType == "Bearer" {
+			if Keyring[i].tokenType == "BEARER" {
 				go authBearer(Keyring, i, "")
 			} else {
 				Keyring[i].Token.Store(string(Keyring[i].token))

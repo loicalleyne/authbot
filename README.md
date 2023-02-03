@@ -10,10 +10,25 @@ Secrets env vars are expected to start with SECRET_ID_1 and exist sequentially u
 
 authbot sends the content of the secret as the body in a HTTP POST request to the oauth2 provider specified in `TOKEN_URL_*`
 
-If a `TOKEN_FIELD_*` is specified, that field in the auth provider response is stored in an atomic string, otherwise the entire response body is stored
+If a `TOKEN_FIELD_*` is specified, that field in the auth provider response is stored in Secret.Token (an atomic string), otherwise the entire response body is stored
+
+authbot.Load() returns a *[]Secret
 
 Accessing the keyring:
-```token := authbot.Keyring[1].Token.String()```
+```var (
+	keyring *[]authbot.Secret
+	err     error
+)
+
+func main() {
+	keyring, err = authbot.Load()
+	if err != nil {
+		log.Fatal("auth retrieval error: %v", err)
+	}
+...
+token := (*keyring)[0].Token.String()
+
+```
 
 `SECRET_STORE` : *GCP* or *AWS*
 
@@ -31,6 +46,6 @@ SECRET_VERSION_2=1
 # AUTH
 TOKEN_URL_1=https://auth.domain.com/oauth/token
 TOKEN_FIELD_1=access_token
-TOKEN_TYPE_1=Bearer
+TOKEN_TYPE_1=BEARER
 TOKEN_TYPE_2=APIKEY
 ```
