@@ -1,4 +1,4 @@
-package authcreds
+package authbot
 
 import (
 	"context"
