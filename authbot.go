@@ -102,7 +102,7 @@ func Load() error {
 			if Keyring[i].TokenType == "Bearer" {
 				go authBearer(Keyring, i, "")
 			} else {
-				Keyring[i].Token = Keyring[i].token
+				Keyring[i].Token.Store(string(Keyring[i].token))
 			}
 		}
 	case "AWS":
@@ -145,7 +145,7 @@ func Load() error {
 			if Keyring[i].TokenType == "Bearer" {
 				go authBearer(Keyring, i, "")
 			} else {
-				Keyring[i].Token = Keyring[i].token
+				Keyring[i].Token.Store(string(Keyring[i].token))
 			}
 		}
 	}
