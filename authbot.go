@@ -101,6 +101,7 @@ func Load() error {
 		for i := 0; i < len(Keyring); i++ {
 			if Keyring[i].tokenType == "Bearer" {
 				go authBearer(Keyring, i, "")
+				go authBearer(Keyring, i, "120s")
 			} else {
 				Keyring[i].Token.Store(string(Keyring[i].token))
 			}
@@ -144,6 +145,7 @@ func Load() error {
 		for i := 0; i < len(Keyring); i++ {
 			if Keyring[i].tokenType == "BEARER" {
 				go authBearer(Keyring, i, "")
+				go authBearer(Keyring, i, "120s")
 			} else {
 				Keyring[i].Token.Store(string(Keyring[i].token))
 			}
