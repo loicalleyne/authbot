@@ -3,7 +3,7 @@ package authbot
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -17,7 +17,7 @@ import (
 	"go.uber.org/atomic"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
-	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
+	secretmanagerpb "cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 )
 
 type Secret struct {
@@ -201,16 +201,16 @@ func authBearer(Keyring []Secret, index int, overlap string) {
 			log.Println(err)
 		}
 
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		if err != nil {
 			log.Println(err)
 		}
 		res.Body.Close()
 		jsonbody := string(body)
-		if s.TokenField == "" {
+		if s.tokenField == "" {
 			Keyring[index].Token.Store(jsonbody)
 		} else {
-			Keyring[index].Token.Store(gjson.Get(jsonbody, s.TokenField).Str)
+			Keyring[index].Token.Store(gjson.Get(jsonbody, s.tokenField).Str)
 		}
 		expiry = gjson.Get(jsonbody, "expires_in").Int()
 		d := time.Duration(expiry)
